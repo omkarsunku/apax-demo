@@ -62,6 +62,13 @@ npm install
 From the **root of the repository**:
 
 ```bash
+cp web/src/config/config.env.example web/.env
+```
+
+Set at minimum `MONGO_URI` and `JWT_SECRET` in `web/.env`, then run:
+
+```bash
+cd web
 npm run dev
 ```
 
