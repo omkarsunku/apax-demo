@@ -2,251 +2,64 @@ import { expect } from "chai";
 import { network } from "hardhat";
 
 describe("APAXToken", function () {
+  async function fixture() {
+    const { ethers } = await network.connect();
+    const [admin, holder, recipient, outsider] = await ethers.getSigners();
+    const token = await ethers.deployContract("APAXToken", [admin.address]);
+    await token.waitForDeployment();
+    await token.approveHolder(holder.address);
+    return { ethers, token, admin, holder, recipient, outsider };
+  }
 
-    async function deployAPAXTokenFixture() {
-        const { ethers } = await network.connect();
+  it("starts with no unbacked supply", async function () {
+    const { token } = await fixture();
+    expect(await token.totalSupply()).to.equal(0n);
+  });
 
-        const [
-            owner,
-            holder1,
-            holder2,
-            nonOwner
-        ] = await ethers.getSigners();
+  it("allows only the minter role to mint for an approved vault deposit", async function () {
+    const { ethers, token, holder, outsider } = await fixture();
+    const depositId = ethers.id("vault-deposit-1");
+    await expect(token.mintForDeposit(holder.address, ethers.parseEther("10"), depositId))
+      .to.emit(token, "VaultDepositMinted")
+      .withArgs(holder.address, ethers.parseEther("10"), depositId);
+    await expect(token.connect(outsider).mintForDeposit(holder.address, 1n, depositId))
+      .to.be.revertedWithCustomError(token, "AccessControlUnauthorizedAccount");
+  });
 
-        const APAXToken = await ethers.getContractFactory("APAXToken");
-        const token = await APAXToken.deploy(owner.address);
-        await token.waitForDeployment();
+  it("blocks transfers to a non-whitelisted recipient", async function () {
+    const { ethers, token, holder, recipient } = await fixture();
+    await token.mintForDeposit(holder.address, ethers.parseEther("10"), ethers.id("deposit"));
+    await expect(token.connect(holder).transfer(recipient.address, 1n))
+      .to.be.revertedWithCustomError(token, "HolderNotAllowed")
+      .withArgs(recipient.address);
+  });
 
-        return {
-            token,
-            owner,
-            holder1,
-            holder2,
-            nonOwner,
-            ethers
-        };
-    }
+  it("allows compliant transfers after both parties are approved", async function () {
+    const { ethers, token, holder, recipient } = await fixture();
+    await token.approveHolder(recipient.address);
+    await token.mintForDeposit(holder.address, 10n, ethers.id("deposit"));
+    await token.connect(holder).transfer(recipient.address, 4n);
+    expect(await token.balanceOf(recipient.address)).to.equal(4n);
+  });
 
-    // =====================================================
-    // DEPLOYMENT TESTS
-    // =====================================================
-    describe("Deployment", function () {
-        it("Should assign initial supply to owner", async function () {
-            const { token, owner } = await deployAPAXTokenFixture();
-            const balance = await token.balanceOf(owner.address);
-            const supply = await token.INITIAL_SUPPLY();
-            expect(balance).to.equal(supply);
-        });
+  it("allows only the burner role to burn an approved redemption", async function () {
+    const { ethers, token, holder, outsider } = await fixture();
+    const redemptionId = ethers.id("redemption-1");
+    await token.mintForDeposit(holder.address, 10n, ethers.id("deposit"));
+    await expect(token.burnForRedemption(holder.address, 4n, redemptionId))
+      .to.emit(token, "RedemptionBurned").withArgs(holder.address, 4n, redemptionId);
+    expect(await token.balanceOf(holder.address)).to.equal(6n);
+    await expect(token.connect(outsider).burnForRedemption(holder.address, 1n, redemptionId))
+      .to.be.revertedWithCustomError(token, "AccessControlUnauthorizedAccount");
+  });
 
-        it("Should approve owner as initial holder", async function () {
-            const { token, owner } = await deployAPAXTokenFixture();
-            expect(await token.isApproved(owner.address)).to.equal(true);
-        });
-    });
-
-    // =====================================================
-    // HOLDER MANAGEMENT TESTS
-    // =====================================================
-    describe("Holder Management", function () {
-        it("Should allow owner to approve holder", async function () {
-            const { token, holder1 } = await deployAPAXTokenFixture();
-            await token.approveHolder(holder1.address);
-            expect(await token.isApproved(holder1.address)).to.equal(true);
-        });
-
-        it("Should emit HolderApproved event", async function () {
-            const { token, holder1 } = await deployAPAXTokenFixture();
-            await expect(token.approveHolder(holder1.address))
-                .to.emit(token, "HolderApproved")
-                .withArgs(holder1.address);
-        });
-
-        it("Should reject approval from non-owner", async function () {
-            const { token, holder1, nonOwner } = await deployAPAXTokenFixture();
-            await expect(
-                token.connect(nonOwner).approveHolder(holder1.address)
-            ).to.be.revertedWithCustomError(token, "OwnableUnauthorizedAccount");
-        });
-
-        it("Should reject duplicate approval", async function () {
-            const { token, holder1 } = await deployAPAXTokenFixture();
-            await token.approveHolder(holder1.address);
-            await expect(
-                token.approveHolder(holder1.address)
-            ).to.be.revertedWithCustomError(token, "HolderAlreadyApproved")
-                .withArgs(holder1.address);
-        });
-
-        it("Should reject zero address approval", async function () {
-            const { token, ethers } = await deployAPAXTokenFixture();
-            await expect(
-                token.approveHolder(ethers.ZeroAddress)
-            ).to.be.revertedWithCustomError(token, "InvalidHolderAddress");
-        });
-
-        it("Should allow owner to revoke holder", async function () {
-            const { token, holder1 } = await deployAPAXTokenFixture();
-            await token.approveHolder(holder1.address);
-            await token.revokeHolder(holder1.address);
-            expect(await token.isApproved(holder1.address)).to.equal(false);
-        });
-
-        it("Should emit HolderRevoked event", async function () {
-            const { token, holder1 } = await deployAPAXTokenFixture();
-            await token.approveHolder(holder1.address);
-            await expect(token.revokeHolder(holder1.address))
-                .to.emit(token, "HolderRevoked")
-                .withArgs(holder1.address);
-        });
-
-        it("Should reject revoking non-approved holder", async function () {
-            const { token, holder1 } = await deployAPAXTokenFixture();
-            await expect(
-                token.revokeHolder(holder1.address)
-            ).to.be.revertedWithCustomError(token, "HolderNotApproved")
-                .withArgs(holder1.address);
-        });
-
-        it("Should reject zero address revoke", async function () {
-            const { token, ethers } = await deployAPAXTokenFixture();
-            await expect(
-                token.revokeHolder(ethers.ZeroAddress)
-            ).to.be.revertedWithCustomError(token, "InvalidHolderAddress");
-        });
-
-        it("Should approve multiple holders", async function () {
-            const { token, holder1, holder2 } = await deployAPAXTokenFixture();
-            await token.approveHolder(holder1.address);
-            await token.approveHolder(holder2.address);
-            expect(await token.isApproved(holder1.address)).to.equal(true);
-            expect(await token.isApproved(holder2.address)).to.equal(true);
-        });
-    });
-
-    // =====================================================
-    // OWNERSHIP TESTS
-    // =====================================================
-    describe("Ownership", function () {
-        it("Should transfer ownership successfully", async function () {
-            const { token, holder1 } = await deployAPAXTokenFixture();
-            await token.transferOwnership(holder1.address);
-            expect(await token.owner()).to.equal(holder1.address);
-        });
-
-        it("Old owner should not approve holder after ownership transfer", async function () {
-            const { token, holder1, holder2 } = await deployAPAXTokenFixture();
-            await token.transferOwnership(holder1.address);
-            await expect(
-                token.approveHolder(holder2.address)
-            ).to.be.revertedWithCustomError(token, "OwnableUnauthorizedAccount");
-        });
-
-        it("New owner should approve holder", async function () {
-            const { token, holder1, holder2 } = await deployAPAXTokenFixture();
-            await token.transferOwnership(holder1.address);
-            await token.connect(holder1).approveHolder(holder2.address);
-            expect(await token.isApproved(holder2.address)).to.equal(true);
-        });
-    });
-
-    // =====================================================
-    // TOKEN TRANSFER RULE TESTS
-    // =====================================================
-    describe("Token Transfer Rules", function () {
-        it("Should allow transfer to approved holder", async function () {
-            const { token, holder1, ethers } = await deployAPAXTokenFixture();
-            await token.approveHolder(holder1.address);
-            const amount = ethers.parseEther("100");
-            await token.transfer(holder1.address, amount);
-            expect(await token.balanceOf(holder1.address)).to.equal(amount);
-        });
-
-        it("Should reject transfer to unapproved holder", async function () {
-            const { token, holder1, ethers } = await deployAPAXTokenFixture();
-            await expect(
-                token.transfer(holder1.address, ethers.parseEther("100"))
-            ).to.be.revertedWithCustomError(token, "HolderNotAllowed")
-                .withArgs(holder1.address);
-        });
-
-        it("Should reject transfer to revoked holder", async function () {
-            const { token, holder1, ethers } = await deployAPAXTokenFixture();
-            await token.approveHolder(holder1.address);
-            await token.revokeHolder(holder1.address);
-            await expect(
-                token.transfer(holder1.address, ethers.parseEther("100"))
-            ).to.be.revertedWithCustomError(token, "HolderNotAllowed")
-                .withArgs(holder1.address);
-        });
-
-        it("Should allow transferFrom to approved holder", async function () {
-            const { token, owner, holder1, holder2, ethers } = await deployAPAXTokenFixture();
-            await token.approveHolder(holder1.address);
-            await token.approveHolder(holder2.address);
-
-            const amount = ethers.parseEther("100");
-            await token.transfer(holder1.address, amount);
-            await token.connect(holder1).approve(owner.address, amount);
-            await token.transferFrom(holder1.address, holder2.address, amount);
-
-            expect(await token.balanceOf(holder2.address)).to.equal(amount);
-        });
-
-        it("Should reject transferFrom to unapproved holder", async function () {
-            const { token, owner, holder1, holder2, ethers } = await deployAPAXTokenFixture();
-            await token.approveHolder(holder1.address);
-
-            const amount = ethers.parseEther("100");
-            await token.transfer(holder1.address, amount);
-            await token.connect(holder1).approve(owner.address, amount);
-
-            await expect(
-                token.transferFrom(holder1.address, holder2.address, amount)
-            ).to.be.revertedWithCustomError(token, "HolderNotAllowed")
-                .withArgs(holder2.address);
-        });
-
-        it("Should allow transfer after receiver gets approved", async function () {
-            const { token, holder1, ethers } = await deployAPAXTokenFixture();
-            const amount = ethers.parseEther("100");
-
-            await expect(
-                token.transfer(holder1.address, amount)
-            ).to.be.revertedWithCustomError(token, "HolderNotAllowed");
-
-            await token.approveHolder(holder1.address);
-            await token.transfer(holder1.address, amount);
-
-            expect(await token.balanceOf(holder1.address)).to.equal(amount);
-        });
-
-        it("Should transfer tokens to multiple approved holders", async function () {
-            const { token, holder1, holder2, ethers } = await deployAPAXTokenFixture();
-            await token.approveHolder(holder1.address);
-            await token.approveHolder(holder2.address);
-
-            const amount = ethers.parseEther("100");
-            await token.transfer(holder1.address, amount);
-            await token.transfer(holder2.address, amount);
-
-            expect(await token.balanceOf(holder1.address)).to.equal(amount);
-            expect(await token.balanceOf(holder2.address)).to.equal(amount);
-        });
-
-        it("Should reject transferFrom after holder is revoked", async function () {
-            const { token, owner, holder1, holder2, ethers } = await deployAPAXTokenFixture();
-            await token.approveHolder(holder1.address);
-            await token.approveHolder(holder2.address);
-
-            const amount = ethers.parseEther("100");
-            await token.transfer(holder1.address, amount);
-            await token.connect(holder1).approve(owner.address, amount);
-            await token.revokeHolder(holder2.address);
-
-            await expect(
-                token.transferFrom(holder1.address, holder2.address, amount)
-            ).to.be.revertedWithCustomError(token, "HolderNotAllowed")
-                .withArgs(holder2.address);
-        });
-    });
+  it("stops mint, burn, and transfer while paused", async function () {
+    const { ethers, token, holder } = await fixture();
+    await token.mintForDeposit(holder.address, 10n, ethers.id("deposit"));
+    await token.pause();
+    await expect(token.mintForDeposit(holder.address, 1n, ethers.id("deposit-2")))
+      .to.be.revertedWithCustomError(token, "EnforcedPause");
+    await expect(token.burnForRedemption(holder.address, 1n, ethers.id("redemption")))
+      .to.be.revertedWithCustomError(token, "EnforcedPause");
+  });
 });

@@ -20,26 +20,29 @@ export default function LoginPage() {
   const [vaultOpening, setVaultOpening] = useState(false)
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
+  const [loginError, setLoginError] = useState('')
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault()
-    // setIsLoading(true)
-    const res = await loginApi({ email, password })
-    console.log(res)
-    //NEED TO CLEAN UP ONCE ALL DONE, didn't get time due to mongodb connection issue.
-    // Simulate authentication delay
-    // await new Promise(resolve => setTimeout(resolve, 1000))
+    setIsLoading(true)
+    setLoginError('')
 
-    // Trigger vault door animation
-    // setVaultOpening(true)
+    try {
+      const response = await loginApi({ email, password })
 
-    // Navigate after animation
-    // await new Promise(resolve => setTimeout(resolve, 1000))
-    // router.push('/dashboard')
-    if(res.data) {
-      router.push('/dashbaord')
-    } else {
-      alert('Something went wrong')
+      if (!response.success || !response.data?.token) {
+        setLoginError(response.message || 'Unable to sign in. Please try again.')
+        return
+      }
+
+      localStorage.setItem('apax_token', response.data.token)
+      setVaultOpening(true)
+      await new Promise(resolve => setTimeout(resolve, 700))
+      router.push('/dashboard')
+    } catch {
+      setLoginError('Unable to reach the server. Please try again.')
+    } finally {
+      setIsLoading(false)
     }
   }
 
@@ -208,6 +211,11 @@ export default function LoginPage() {
             {/* Email Tab */}
             <TabsContent value="email">
               <form onSubmit={handleLogin} className="space-y-4">
+                {loginError && (
+                  <div role="alert" className="rounded-md border border-red-500/30 bg-red-500/10 px-3 py-2 text-sm text-red-300">
+                    {loginError}
+                  </div>
+                )}
                 <div className="space-y-2">
                   <Label htmlFor="email" className="text-[#C0C0C0]">Email</Label>
                   <div className="relative">

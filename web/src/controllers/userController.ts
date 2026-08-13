@@ -74,14 +74,9 @@ export const loginUser = asyncErrorHandler(
 // ================= LOGOUT =================
 export const logoutUser = asyncErrorHandler(
   async (req: Request, res: Response) => {
-    res.cookie("token", null, {
-      expires: new Date(Date.now()),
-      httpOnly: true,
-    });
-
     res.status(200).json({
       success: true,
-      message: "Logged Out",
+      message: "Logged out. Remove the bearer token on the client.",
     });
   }
 );

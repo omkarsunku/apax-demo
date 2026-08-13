@@ -14,15 +14,23 @@ export interface AuthenticatedRequest extends Request {
 
 interface DecodedToken extends JwtPayload {
   id: string;
+  email: string;
 }
 
 // Check if user is authenticated
 export const isAuthenticatedUser = asyncErrorHandler(
   async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
-    const { token } = req.cookies;
+    const authorization = req.header("authorization");
+    const token = authorization?.startsWith("Bearer ")
+      ? authorization.slice(7)
+      : undefined;
 
     if (!token) {
-      return next(new ErrorHandler("Please Login to Access", 401));
+      return next(new ErrorHandler("Authentication token required", 401));
+    }
+
+    if (!process.env.JWT_SECRET) {
+      return next(new ErrorHandler("JWT signing secret is not configured", 500));
     }
 
     const decodedData = jwt.verify(

@@ -1,15 +1,13 @@
-const baseUrl =
-  process.env.NODE_ENV === 'production'
-    ? ''
-    : 'http://localhost:4000';
+const baseUrl = process.env.NEXT_PUBLIC_API_URL
+  ?? (process.env.NODE_ENV === 'production' ? '' : 'http://localhost:4000');
 
-export interface ApiResponse {
+export interface ApiResponse<T = unknown> {
   success: boolean;
   message: string;
-  data?: any;
+  data?: T;
 }
 
-export const baseAPI = async (url: string, method: any, body?: unknown) => {
+export const baseAPI = async <T>(url: string, method: 'GET' | 'POST' | 'PUT' | 'DELETE', body?: unknown): Promise<ApiResponse<T>> => {
   try {
     const res = await fetch(`${baseUrl}/user${url}`, {
       method,
@@ -36,7 +34,7 @@ export const baseAPI = async (url: string, method: any, body?: unknown) => {
     return {
       success: true,
       message: responseData?.message ?? 'Request successful',
-      data: responseData?.data ?? responseData,
+      data: (responseData?.data ?? responseData) as T,
     };
   } catch (error) {
     const message = error instanceof Error ? error.message : 'Something went wrong';

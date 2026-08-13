@@ -33,16 +33,16 @@ export default defineConfig({
       type: "edr-simulated",
       chainType: "op",
     },
-    sepolia: {
-      type: "http",
-      chainType: "l1",
-
-      url: process.env.SEPOLIA_RPC_URL!,
-
-      accounts: [
-        process.env.SEPOLIA_PRIVATE_KEY!
-      ],
-    },
+    ...(process.env.SEPOLIA_RPC_URL && process.env.SEPOLIA_PRIVATE_KEY
+      ? {
+          sepolia: {
+            type: "http" as const,
+            chainType: "l1" as const,
+            url: process.env.SEPOLIA_RPC_URL,
+            accounts: [process.env.SEPOLIA_PRIVATE_KEY],
+          },
+        }
+      : {}),
   },
 
   etherscan: {

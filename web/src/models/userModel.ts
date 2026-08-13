@@ -81,6 +81,19 @@ userSchema.pre<IUser>("save", async function (next) {
   this.password = await bcrypt.hash(this.password, 10);
 });
 
+userSchema.methods.getJWTToken = function (): string {
+  const secret = process.env.JWT_SECRET;
+  if (!secret) {
+    throw new Error("JWT_SECRET is not configured");
+  }
+
+  return jwt.sign(
+    { id: this._id.toString(), email: this.email },
+    secret,
+    { expiresIn: (process.env.JWT_EXPIRE ?? "7d") as jwt.SignOptions["expiresIn"] }
+  );
+};
+
 
 /**
  * Compare password
