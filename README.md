@@ -126,4 +126,4 @@ The Next.js app can read `balanceOf` and `allowance` with ethers/wagmi against a
 4. Test the contract's permissions, pause, replay resistance, and reserve accounting; deploy only to a testnet behind multisig roles.
 5. Add an event indexer with confirmation/reorg handling and reconcile its read model against chain state.
 
-Candidate: GitHub `omkarsaiazooca`. Weekly availability should be confirmed directly with the candidate.
+Candidate: GitHub `omkarsunku`. Availability: 20–30 hours/week.
