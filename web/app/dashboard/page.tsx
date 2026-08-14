@@ -9,20 +9,36 @@ import { ZakatView } from '@/components/views/zakat-view'
 import { RedemptionView } from '@/components/views/redemption-view'
 import { ShariaView } from '@/components/views/sharia-view'
 import { useAPAXStore } from '@/lib/store'
+import { getHoldings } from '@/lib/services/holdings.api'
 
 export default function DashboardPage() {
   const router = useRouter()
   const [isAuthenticated, setIsAuthenticated] = useState(false)
-  const { activeView, addAuditLog } = useAPAXStore()
+  const { activeView, addAuditLog, setUserHoldings, setHoldingsState } = useAPAXStore()
 
   useEffect(() => {
-    if (!localStorage.getItem('apax_token')) {
+    const token = localStorage.getItem('apax_token')
+    if (!token) {
       router.replace('/login')
       return
     }
 
     setIsAuthenticated(true)
-  }, [router])
+    setHoldingsState('loading')
+    getHoldings(token)
+      .then(({ holdings }) => {
+        setUserHoldings({
+          goldGrams: holdings.gold.amount,
+          silverGrams: holdings.silver.amount,
+          platinumGrams: holdings.platinum.amount,
+          apxiTokens: 0,
+        })
+        setHoldingsState('success')
+      })
+      .catch((error: unknown) => {
+        setHoldingsState('error', error instanceof Error ? error.message : 'Unable to load holdings')
+      })
+  }, [router, setHoldingsState, setUserHoldings])
 
   // Simulate live price updates
   useEffect(() => {

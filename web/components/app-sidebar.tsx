@@ -12,6 +12,7 @@ import {
 } from '@phosphor-icons/react'
 import Image from 'next/image'
 import { useRouter } from 'next/navigation'
+import { useEffect, useState } from 'react'
 
 import {
   Sidebar,
@@ -27,6 +28,7 @@ import {
   SidebarSeparator
 } from '@/components/ui/sidebar'
 import { useAPAXStore } from '@/lib/store'
+import { getSessionUser, SessionUser } from '@/lib/session'
 
 const mainNavItems = [
   {
@@ -69,10 +71,14 @@ const supportItems = [
 
 export function AppSidebar() {
   const router = useRouter()
+  const [user, setUser] = useState<SessionUser | null>(null)
   const { activeView, setActiveView } = useAPAXStore()
+
+  useEffect(() => setUser(getSessionUser()), [])
 
   const handleLogout = () => {
     localStorage.removeItem('apax_token')
+    localStorage.removeItem('apax_user')
     useAPAXStore.setState({ activeView: 'dashboard' })
     router.replace('/login')
     router.refresh()
@@ -158,11 +164,11 @@ export function AppSidebar() {
         <div className="glass rounded-lg p-3">
           <div className="flex items-center gap-3">
             <div className="h-9 w-9 rounded-full bg-gradient-to-br from-[#D4AF37] to-[#B8860B] flex items-center justify-center text-[#0A0A0A] font-semibold text-sm">
-              JD
+              {user?.name?.split(/\s+/).map(part => part[0]).join('').slice(0, 2).toUpperCase() || 'AP'}
             </div>
             <div className="flex-1 min-w-0">
-              <p className="text-sm font-medium text-[#E8E8E8] truncate">John Doe</p>
-              <p className="text-xs text-[#888888] truncate">client@apax.institutional</p>
+              <p className="text-sm font-medium text-[#E8E8E8] truncate">{user?.name || 'APAX User'}</p>
+              <p className="text-xs text-[#888888] truncate">{user?.email || ''}</p>
             </div>
             <button
               type="button"

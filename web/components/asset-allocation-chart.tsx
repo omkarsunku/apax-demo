@@ -23,21 +23,21 @@ export function AssetAllocationChart() {
     {
       name: 'Gold',
       value: goldValue,
-      percentage: ((goldValue / totalValue) * 100).toFixed(1),
+      percentage: (totalValue ? (goldValue / totalValue) * 100 : 0).toFixed(1),
       grams: userHoldings.goldGrams,
       color: COLORS.gold
     },
     {
       name: 'Silver',
       value: silverValue,
-      percentage: ((silverValue / totalValue) * 100).toFixed(1),
+      percentage: (totalValue ? (silverValue / totalValue) * 100 : 0).toFixed(1),
       grams: userHoldings.silverGrams,
       color: COLORS.silver
     },
     {
       name: 'Platinum',
       value: platinumValue,
-      percentage: ((platinumValue / totalValue) * 100).toFixed(1),
+      percentage: (totalValue ? (platinumValue / totalValue) * 100 : 0).toFixed(1),
       grams: userHoldings.platinumGrams,
       color: COLORS.platinum
     }

@@ -5,7 +5,15 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { useAPAXStore, formatCurrency, formatWeight } from '@/lib/store'
 
 export function PortfolioOverview() {
-  const { userHoldings, metalPrices } = useAPAXStore()
+  const { userHoldings, metalPrices, holdingsStatus, holdingsError } = useAPAXStore()
+
+  if (holdingsStatus === 'loading' || holdingsStatus === 'idle') {
+    return <div className="rounded-lg border border-[#2A2A2A] bg-[#111111] p-6 text-sm text-[#888888]">Loading your holdings…</div>
+  }
+
+  if (holdingsStatus === 'error') {
+    return <div role="alert" className="rounded-lg border border-red-500/30 bg-red-500/10 p-6 text-sm text-red-300">{holdingsError}</div>
+  }
 
   // Calculate total portfolio value
   const goldValue = userHoldings.goldGrams * (metalPrices.gold / 31.1035)

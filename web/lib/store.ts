@@ -49,6 +49,9 @@ interface APAXStore {
   // User Holdings
   userHoldings: UserHolding
   setUserHoldings: (holdings: UserHolding) => void
+  holdingsStatus: 'idle' | 'loading' | 'success' | 'error'
+  holdingsError: string | null
+  setHoldingsState: (status: APAXStore['holdingsStatus'], error?: string | null) => void
   
   // Vault Data
   vaultData: VaultData
@@ -76,10 +79,10 @@ const initialMetalPrices: MetalPrice = {
 }
 
 const initialUserHoldings: UserHolding = {
-  goldGrams: 156.75,
-  silverGrams: 892.40,
-  platinumGrams: 45.20,
-  apxiTokens: 1250.00
+  goldGrams: 0,
+  silverGrams: 0,
+  platinumGrams: 0,
+  apxiTokens: 0
 }
 
 const initialVaultData: VaultData = {
@@ -137,6 +140,9 @@ export const useAPAXStore = create<APAXStore>((set, get) => ({
   // User Holdings
   userHoldings: initialUserHoldings,
   setUserHoldings: (holdings) => set({ userHoldings: holdings }),
+  holdingsStatus: 'idle',
+  holdingsError: null,
+  setHoldingsState: (holdingsStatus, holdingsError = null) => set({ holdingsStatus, holdingsError }),
   
   // Vault Data
   vaultData: initialVaultData,

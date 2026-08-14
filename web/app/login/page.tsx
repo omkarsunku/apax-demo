@@ -36,6 +36,7 @@ export default function LoginPage() {
       }
 
       localStorage.setItem('apax_token', response.data.token)
+      localStorage.setItem('apax_user', JSON.stringify(response.data.user))
       setVaultOpening(true)
       await new Promise(resolve => setTimeout(resolve, 700))
       router.push('/dashboard')

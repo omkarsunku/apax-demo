@@ -1,11 +1,16 @@
 'use client'
 
 import Image from 'next/image'
+import { useEffect, useState } from 'react'
 import { PortfolioOverview } from '@/components/portfolio-overview'
 import { AssetAllocationChart } from '@/components/asset-allocation-chart'
 import { ShariaCertificationHub } from '@/components/sharia-certification-hub'
+import { getSessionUser } from '@/lib/session'
 
 export function DashboardView() {
+  const [firstName, setFirstName] = useState('')
+  useEffect(() => setFirstName(getSessionUser()?.name.split(/\s+/)[0] || ''), [])
+
   return (
     <div className="space-y-4 md:space-y-6 stagger-in max-w-7xl mx-auto overflow-hidden">
       {/* Live Ledger Ticker */}
@@ -29,7 +34,7 @@ export function DashboardView() {
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-xl md:text-2xl font-serif font-bold text-[#E8E8E8]">
-            Welcome back, John!
+            Welcome back{firstName ? `, ${firstName}` : ''}!
           </h1>
         </div>
         <div className="flex items-center gap-3">
