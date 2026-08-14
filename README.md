@@ -72,6 +72,23 @@ cd web
 npm run dev
 ```
 
+For the local blockchain integration, start and deploy in two additional terminals:
+
+```bash
+cd smart-contracts
+npm run node
+```
+
+```bash
+cd smart-contracts
+npm run deploy:local
+```
+
+Set `RPC_URL=http://127.0.0.1:8545` and the printed `CONTRACT_ADDRESS` in
+`web/.env`, then restart `npm run dev`. Verify the backend connection at
+`GET http://localhost:4000/api/blockchain/status`. The dashboard ticker reads
+this endpoint and displays the live chain id, block, APXG address, and supply.
+
 ## Once running, open your browser and go to: http://localhost:3000 to view the app locally.
 
 ## Assessment implementation

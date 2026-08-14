@@ -1,16 +1,40 @@
 import { ethers } from "ethers";
-import * as dotenv from "dotenv";
 
-dotenv.config();
+const tokenAbi = [
+  "function name() view returns (string)",
+  "function symbol() view returns (string)",
+  "function totalSupply() view returns (uint256)",
+] as const;
 
-export const provider = new ethers.JsonRpcProvider(process.env.RPC_URL);
+export async function getBlockchainStatus() {
+  const rpcUrl = process.env.RPC_URL;
+  const contractAddress = process.env.CONTRACT_ADDRESS;
+  if (!rpcUrl || !contractAddress) {
+    throw new Error("RPC_URL and CONTRACT_ADDRESS must be configured");
+  }
 
-export const contract = new ethers.Contract(
-  process.env.CONTRACT_ADDRESS!,
-  [
-    "function getBalance(address) view returns (uint256)",
-    "event Deposited(address indexed user, uint256 amount)",
-    "event Withdrawn(address indexed user, uint256 amount)"
-  ],
-  provider
-);
+  const provider = new ethers.JsonRpcProvider(rpcUrl);
+  const code = await provider.getCode(contractAddress);
+  if (code === "0x") {
+    throw new Error(`No APAX contract deployed at ${contractAddress}`);
+  }
+
+  const contract = new ethers.Contract(contractAddress, tokenAbi, provider);
+  const [network, blockNumber, name, symbol, totalSupply] = await Promise.all([
+    provider.getNetwork(),
+    provider.getBlockNumber(),
+    contract.name() as Promise<string>,
+    contract.symbol() as Promise<string>,
+    contract.totalSupply() as Promise<bigint>,
+  ]);
+
+  return {
+    connected: true,
+    chainId: network.chainId.toString(),
+    blockNumber,
+    contractAddress,
+    name,
+    symbol,
+    totalSupply: ethers.formatUnits(totalSupply, 18),
+  };
+}

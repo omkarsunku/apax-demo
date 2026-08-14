@@ -6,10 +6,15 @@ import { PortfolioOverview } from '@/components/portfolio-overview'
 import { AssetAllocationChart } from '@/components/asset-allocation-chart'
 import { ShariaCertificationHub } from '@/components/sharia-certification-hub'
 import { getSessionUser } from '@/lib/session'
+import { BlockchainStatus, getBlockchainStatus } from '@/lib/services/blockchain.api'
 
 export function DashboardView() {
   const [firstName, setFirstName] = useState('')
+  const [chain, setChain] = useState<BlockchainStatus | null>(null)
   useEffect(() => setFirstName(getSessionUser()?.name.split(/\s+/)[0] || ''), [])
+  useEffect(() => {
+    getBlockchainStatus().then(setChain).catch(() => setChain(null))
+  }, [])
 
   return (
     <div className="space-y-4 md:space-y-6 stagger-in max-w-7xl mx-auto overflow-hidden">
@@ -20,11 +25,12 @@ export function DashboardView() {
             <div key={i} className="flex gap-12 items-center">
               <div className="flex items-center gap-2">
                 <div className="h-1.5 w-1.5 rounded-full bg-emerald-500 animate-pulse" />
-                <span className="text-terminal-sm">Network Connectivity: 100%</span>
+                <span className="text-terminal-sm">Local Chain: {chain ? 'Connected' : 'Unavailable'}</span>
               </div>
-              <span className="text-terminal-sm">Latest Block: #8,421,093</span>
-              <span className="text-terminal-sm text-[#D4AF37]">Vault A1-X: Re-verified by Lead Auditor</span>
-              <span className="text-terminal-sm">Last Synced: 2s ago</span>
+              <span className="text-terminal-sm">Chain ID: {chain?.chainId ?? '—'}</span>
+              <span className="text-terminal-sm">Latest Block: #{chain?.blockNumber ?? '—'}</span>
+              <span className="text-terminal-sm text-[#D4AF37]">{chain ? `${chain.symbol} ${chain.contractAddress.slice(0, 10)}…` : 'APX Gold not connected'}</span>
+              <span className="text-terminal-sm">Supply: {chain?.totalSupply ?? '—'}</span>
             </div>
           ))}
         </div>

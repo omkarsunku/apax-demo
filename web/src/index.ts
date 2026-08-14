@@ -7,6 +7,7 @@ import activityRoutes from "./routes/activity";
 import balanceRoutes from "./routes/balance";
 import userRoutes from "./routes/users";
 import holdingsRoutes from "./routes/holdings";
+import blockchainRoutes from "./routes/blockchain";
 import connectDatabase from "./config/database";
 import ErrorHandler from "./utils/errorHandler";
 
@@ -23,6 +24,7 @@ app.use("/activity", activityRoutes);
 app.use("/balance", balanceRoutes);
 app.use("/user", userRoutes);
 app.use("/api/holdings", holdingsRoutes);
+app.use("/api/blockchain", blockchainRoutes);
 
 // Health check
 app.get("/", (req, res) => {
