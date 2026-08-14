@@ -93,7 +93,7 @@ this endpoint and displays the live chain id, block, APXG address, and supply.
 
 ## Assessment implementation
 
-Work completed on `assessment/omkar` across the frontend, API, and EVM contract.
+Work completed across the frontend, API, and EVM contract.
 
 ### Authentication and holdings
 
