@@ -1,6 +1,7 @@
 'use client'
 
-import { useEffect } from 'react'
+import { useEffect, useState } from 'react'
+import { useRouter } from 'next/navigation'
 import { DashboardLayout } from '@/components/dashboard-layout'
 import { DashboardView } from '@/components/views/dashboard-view'
 import { PorView } from '@/components/views/por-view'
@@ -10,7 +11,18 @@ import { ShariaView } from '@/components/views/sharia-view'
 import { useAPAXStore } from '@/lib/store'
 
 export default function DashboardPage() {
+  const router = useRouter()
+  const [isAuthenticated, setIsAuthenticated] = useState(false)
   const { activeView, addAuditLog } = useAPAXStore()
+
+  useEffect(() => {
+    if (!localStorage.getItem('apax_token')) {
+      router.replace('/login')
+      return
+    }
+
+    setIsAuthenticated(true)
+  }, [router])
 
   // Simulate live price updates
   useEffect(() => {
@@ -67,6 +79,14 @@ export default function DashboardPage() {
       default:
         return <DashboardView />
     }
+  }
+
+  if (!isAuthenticated) {
+    return (
+      <div className="flex min-h-screen items-center justify-center bg-[#0A0A0A] text-sm text-[#888888]">
+        Verifying session…
+      </div>
+    )
   }
 
   return (
